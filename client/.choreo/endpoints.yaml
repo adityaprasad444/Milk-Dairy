@@ -1,0 +1,10 @@
+# Choreo endpoints configuration for client
+version: 0.1
+
+endpoints:
+  # Frontend Web Application
+  - name: milk-dairy-web
+    type: WEB
+    networkVisibility: Public
+    context: /
+    port: 3000

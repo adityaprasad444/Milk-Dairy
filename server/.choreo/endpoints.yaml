@@ -1,0 +1,19 @@
+# Choreo endpoints configuration
+version: 0.1
+
+# Backend API Service
+endpoints:
+  # Main API Service
+  - name: milk-dairy-api
+    type: REST
+    networkVisibility: Project
+    context: /
+    schemaFilePath: swagger.yaml
+    port: 5000
+    
+  # Swagger Documentation
+  - name: api-docs
+    type: WEB
+    networkVisibility: Public
+    context: /api-docs
+    port: 5000
