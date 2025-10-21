@@ -1,0 +1,1961 @@
+openapi: 3.0.3
+info:
+  title: Milk Dairy Management System API
+  description: |
+    A comprehensive MERN stack application for managing milk dairy operations with role-based access control, 
+    subscription management, and real-time delivery tracking.
+    
+    ## Authentication
+    This API uses JWT Bearer token authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+    
+    ## User Roles
+    - **ADMIN**: Full system access, user management, analytics
+    - **DISTRIBUTOR**: Order management, delivery assignment, product management
+    - **DELIVERY_BOY**: Delivery assignments, status updates
+    - **CONSUMER**: Place orders, manage subscriptions, track deliveries
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@milkdairy.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+  - url: https://api.milkdairy.com/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication Endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with role-based access
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: "John Doe"
+              email: "john@example.com"
+              password: "password123"
+              phone: "9876543210"
+              role: "CONSUMER"
+              region: "North Delhi"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and get JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "john@example.com"
+              password: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid credentials or account deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user profile
+      description: Retrieve the authenticated user's profile information
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/profile:
+    put:
+      tags:
+        - Authentication
+      summary: Update user profile
+      description: Update the authenticated user's profile information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Address Management Endpoints
+  /addresses:
+    get:
+      tags:
+        - Address Management
+      summary: Get all user addresses
+      description: Retrieve all addresses for the authenticated user
+      responses:
+        '200':
+          description: Addresses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Address'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Address Management
+      summary: Add new address
+      description: Create a new address for the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+            example:
+              name: "John Doe"
+              phone: "9876543210"
+              street: "123 Main Street, Apartment 4B"
+              city: "New Delhi"
+              state: "Delhi"
+              pincode: "110001"
+              landmark: "Near Metro Station"
+              isDefault: true
+      responses:
+        '201':
+          description: Address added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Address'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /addresses/{addressId}:
+    get:
+      tags:
+        - Address Management
+      summary: Get specific address
+      description: Retrieve a specific address by ID
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Address ID
+      responses:
+        '200':
+          description: Address retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Address'
+        '400':
+          description: Invalid address ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Address not found or access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Address Management
+      summary: Update address
+      description: Update a specific address
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Address ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+      responses:
+        '200':
+          description: Address updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Address'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Address not found or access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Address Management
+      summary: Delete address
+      description: Delete a specific address
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Address ID
+      responses:
+        '200':
+          description: Address deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: Address not found or access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /addresses/{addressId}/set-default:
+    patch:
+      tags:
+        - Address Management
+      summary: Set default address
+      description: Set a specific address as the default address
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Address ID
+      responses:
+        '200':
+          description: Default address updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Address'
+        '404':
+          description: Address not found or access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Subscription Management Endpoints
+  /subscriptions:
+    get:
+      tags:
+        - Subscription Management
+      summary: Get user subscriptions
+      description: Retrieve all subscriptions for the authenticated user
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Subscription Management
+      summary: Create new subscription
+      description: Create a new subscription for recurring orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionRequest'
+            example:
+              products:
+                - productId: "60d5ecb74b24a1234567890a"
+                  quantity: 2
+              subscriptionType: "weekly"
+              frequency: "weekly"
+              startDate: "2024-01-01"
+              endDate: "2024-12-31"
+              deliveryTime: "morning"
+              deliveryDays: ["monday", "wednesday", "friday"]
+              specialInstructions: "Leave at the door"
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Validation error or insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /subscriptions/{id}:
+    get:
+      tags:
+        - Subscription Management
+      summary: Get subscription by ID
+      description: Retrieve a specific subscription by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Subscription ID
+      responses:
+        '200':
+          description: Subscription retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Subscription'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Subscription Management
+      summary: Update subscription
+      description: Update an existing subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Subscription ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Validation error or insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Subscription Management
+      summary: Cancel subscription
+      description: Cancel an existing subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Subscription ID
+      responses:
+        '200':
+          description: Subscription cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Subscription already cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /subscriptions/{id}/resume:
+    put:
+      tags:
+        - Subscription Management
+      summary: Resume paused subscription
+      description: Resume a paused subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Subscription ID
+      responses:
+        '200':
+          description: Subscription resumed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Subscription'
+        '404':
+          description: Subscription not found or not in paused state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Admin Endpoints
+  /admin/users:
+    get:
+      tags:
+        - Admin Management
+      summary: Get all users
+      description: Retrieve all users with optional role filtering (Admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ADMIN, DISTRIBUTOR, DELIVERY_BOY, CONSUMER, all]
+          description: Filter users by role
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Access denied - Admin privileges required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users/{id}:
+    put:
+      tags:
+        - Admin Management
+      summary: Update user
+      description: Update user information (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error or email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - Admin privileges required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users/{id}/status:
+    patch:
+      tags:
+        - Admin Management
+      summary: Update user status
+      description: Activate or deactivate a user account (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+                  description: User active status
+              required:
+                - isActive
+      responses:
+        '200':
+          description: User status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid request - isActive must be boolean
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - Admin privileges required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/assign-consumer:
+    post:
+      tags:
+        - Admin Management
+      summary: Assign consumer to distributor
+      description: Assign a consumer to a specific distributor (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                consumerId:
+                  type: string
+                  description: Consumer user ID
+                distributorId:
+                  type: string
+                  description: Distributor user ID
+              required:
+                - consumerId
+                - distributorId
+            example:
+              consumerId: "60d5ecb74b24a1234567890a"
+              distributorId: "60d5ecb74b24a1234567890b"
+      responses:
+        '200':
+          description: Consumer assigned to distributor successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      consumer:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          email:
+                            type: string
+                      distributor:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          email:
+                            type: string
+        '400':
+          description: Validation error or invalid user roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - Admin privileges required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Consumer or distributor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/distributor/{id}/consumers:
+    get:
+      tags:
+        - Admin Management
+      summary: Get consumers by distributor
+      description: Get all consumers assigned to a specific distributor (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Distributor ID
+      responses:
+        '200':
+          description: Consumers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Access denied - Admin privileges required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Consumer Endpoints
+  /consumer/dashboard:
+    get:
+      tags:
+        - Consumer
+      summary: Get consumer dashboard data
+      description: Retrieve dashboard data including recent orders and deliveries
+      responses:
+        '200':
+          description: Dashboard data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+                      deliveries:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Delivery'
+                      totalOrders:
+                        type: integer
+                      totalDeliveries:
+                        type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /consumer/orders:
+    get:
+      tags:
+        - Consumer
+      summary: Get consumer orders
+      description: Retrieve all orders for the authenticated consumer
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Consumer
+      summary: Place new order
+      description: Create a new order for products from assigned distributor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+            example:
+              products:
+                - productId: "60d5ecb74b24a1234567890a"
+                  quantity: 2
+              deliveryDate: "2024-01-15"
+              deliveryTime: "morning"
+              deliveryAddress:
+                street: "123 Main Street"
+                city: "New Delhi"
+                state: "Delhi"
+                pincode: "110001"
+                landmark: "Near Metro Station"
+              specialInstructions: "Ring the bell twice"
+      responses:
+        '201':
+          description: Order placed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          description: Validation error or no distributor assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /consumer/products:
+    get:
+      tags:
+        - Consumer
+      summary: Get available products
+      description: Get products available from the assigned distributor
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+        '400':
+          description: No distributor assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Consumer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /consumer/subscriptions:
+    get:
+      tags:
+        - Consumer
+      summary: Get consumer subscriptions
+      description: Retrieve all subscriptions for the authenticated consumer
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Consumer
+      summary: Create consumer subscription
+      description: Create a new subscription for recurring orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsumerSubscriptionRequest'
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Validation error or no distributor assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /consumer/subscriptions/{subscriptionId}:
+    put:
+      tags:
+        - Consumer
+      summary: Update consumer subscription
+      description: Update an existing subscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Subscription ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsumerSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Subscription'
+        '403':
+          description: Not authorized to update this subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Health Check
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Check if the API is running
+      security: []
+      responses:
+        '200':
+          description: API is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Milk Dairy Management API is running!"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Authentication Schemas
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - phone
+        - role
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          minLength: 6
+          description: User's password (minimum 6 characters)
+        phone:
+          type: string
+          pattern: '^[0-9]{10}$'
+          description: User's phone number (10 digits)
+        role:
+          type: string
+          enum: [ADMIN, DISTRIBUTOR, DELIVERY_BOY, CONSUMER]
+          description: User's role in the system
+        region:
+          type: string
+          description: Region (for distributors)
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          description: User's password
+
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+          description: JWT authentication token
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: User's full name
+        phone:
+          type: string
+          pattern: '^[0-9]{10}$'
+          description: User's phone number
+        address:
+          type: object
+          description: User's address (deprecated - use addresses endpoint)
+
+    # User Schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User ID
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phone:
+          type: string
+          description: User's phone number
+        role:
+          type: string
+          enum: [ADMIN, DISTRIBUTOR, DELIVERY_BOY, CONSUMER]
+          description: User's role
+        addresses:
+          type: array
+          items:
+            type: string
+          description: Array of address IDs
+        isActive:
+          type: boolean
+          description: Whether the user account is active
+        assignedDistributor:
+          type: string
+          description: ID of assigned distributor (for consumers)
+        region:
+          type: string
+          description: Region (for distributors)
+        profileImage:
+          type: string
+          description: URL to profile image
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    UserBasic:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+
+    UpdateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - role
+      properties:
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phone:
+          type: string
+          description: User's phone number
+        role:
+          type: string
+          enum: [ADMIN, DISTRIBUTOR, DELIVERY_BOY, CONSUMER]
+          description: User's role
+        isActive:
+          type: boolean
+          description: Whether the user account is active
+
+    # Address Schemas
+    Address:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Address ID
+        userId:
+          type: string
+          description: User ID who owns this address
+        name:
+          type: string
+          description: Name for this address
+        phone:
+          type: string
+          pattern: '^[0-9]{10}$'
+          description: Phone number for this address
+        street:
+          type: string
+          description: Street address
+        city:
+          type: string
+          description: City name
+        state:
+          type: string
+          description: State name
+        pincode:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: 6-digit pincode
+        landmark:
+          type: string
+          description: Nearby landmark (optional)
+        isDefault:
+          type: boolean
+          description: Whether this is the default address
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+              minimum: -90
+              maximum: 90
+              description: Latitude
+            lng:
+              type: number
+              minimum: -180
+              maximum: 180
+              description: Longitude
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddressRequest:
+      type: object
+      required:
+        - name
+        - phone
+        - street
+        - city
+        - state
+        - pincode
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Name for this address
+        phone:
+          type: string
+          pattern: '^[0-9]{10}$'
+          description: Phone number for this address
+        street:
+          type: string
+          minLength: 5
+          maxLength: 200
+          description: Street address
+        city:
+          type: string
+          maxLength: 100
+          description: City name
+        state:
+          type: string
+          maxLength: 50
+          description: State name
+        pincode:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: 6-digit pincode
+        landmark:
+          type: string
+          maxLength: 200
+          description: Nearby landmark (optional)
+        isDefault:
+          type: boolean
+          description: Whether this should be the default address
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+              minimum: -90
+              maximum: 90
+            lng:
+              type: number
+              minimum: -180
+              maximum: 180
+
+    # Product Schemas
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Product ID
+        name:
+          type: string
+          description: Product name
+        description:
+          type: string
+          description: Product description
+        category:
+          type: string
+          enum: [MILK, CURD, BUTTER, CHEESE, GHEE, PANEER, OTHER]
+          description: Product category
+        price:
+          type: number
+          minimum: 0
+          description: Product price
+        createdBy:
+          type: string
+          description: ID of user who created this product
+        unit:
+          type: string
+          enum: [liters, kg, grams, packets, pieces]
+          description: Unit of measurement
+        minQuantity:
+          type: integer
+          minimum: 1
+          description: Minimum order quantity
+        maxQuantity:
+          type: integer
+          description: Maximum order quantity
+        image:
+          type: string
+          description: Product image URL
+        isActive:
+          type: boolean
+          description: Whether the product is active
+        nutritionalInfo:
+          type: object
+          properties:
+            fat:
+              type: number
+            protein:
+              type: number
+            carbs:
+              type: number
+            calories:
+              type: number
+        shelfLife:
+          type: integer
+          description: Shelf life in days
+        availableRegions:
+          type: array
+          items:
+            type: string
+          description: Regions where product is available
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Order Schemas
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Order ID
+        orderNumber:
+          type: string
+          description: Unique order number
+        customer:
+          type: string
+          description: Customer user ID
+        distributor:
+          type: string
+          description: Distributor user ID
+        deliveryBoy:
+          type: string
+          description: Delivery boy user ID (optional)
+        delivery:
+          type: string
+          description: Delivery ID (optional)
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              quantity:
+                type: integer
+              unit:
+                type: string
+              price:
+                type: number
+              totalPrice:
+                type: number
+        totalAmount:
+          type: number
+          description: Total order amount
+        orderDate:
+          type: string
+          format: date-time
+        deliveryDate:
+          type: string
+          format: date-time
+        deliveryTime:
+          type: string
+          enum: [morning, afternoon, evening]
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED, FAILED]
+        paymentStatus:
+          type: string
+          enum: [PENDING, PAID, FAILED, REFUNDED]
+        deliveryAddress:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            pincode:
+              type: string
+            landmark:
+              type: string
+            coordinates:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+        specialInstructions:
+          type: string
+        isSubscription:
+          type: boolean
+        subscriptionDetails:
+          type: object
+          properties:
+            frequency:
+              type: string
+              enum: [daily, weekly, monthly]
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
+            pausedDates:
+              type: array
+              items:
+                type: string
+                format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderRequest:
+      type: object
+      required:
+        - products
+        - deliveryDate
+      properties:
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                description: Product ID
+              quantity:
+                type: integer
+                minimum: 1
+                description: Quantity to order
+          minItems: 1
+        deliveryDate:
+          type: string
+          format: date
+          description: Desired delivery date
+        deliveryTime:
+          type: string
+          enum: [morning, afternoon, evening]
+          default: morning
+        deliveryAddress:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            pincode:
+              type: string
+            landmark:
+              type: string
+        specialInstructions:
+          type: string
+          description: Special delivery instructions
+        isSubscription:
+          type: boolean
+          default: false
+        subscriptionDetails:
+          type: object
+          properties:
+            frequency:
+              type: string
+              enum: [daily, weekly, monthly]
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
+
+    # Subscription Schemas
+    Subscription:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Subscription ID
+        customer:
+          type: string
+          description: Customer user ID
+        distributor:
+          type: string
+          description: Distributor user ID
+        orders:
+          type: array
+          items:
+            type: string
+          description: Array of subscription order IDs
+        subscriptionType:
+          type: string
+          enum: [one-time, weekly, monthly, custom]
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              product:
+                type: string
+                description: Product ID
+              quantity:
+                type: integer
+                minimum: 1
+              price:
+                type: number
+              unit:
+                type: string
+        frequency:
+          type: string
+          enum: [daily, twice_week, alternate_days, weekly, fortnightly, monthly]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        deliveryTime:
+          type: string
+          enum: [morning, afternoon, evening, flexible]
+        deliveryDays:
+          type: array
+          items:
+            type: string
+            enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+        deliveryDay:
+          type: integer
+          minimum: 1
+          maximum: 28
+        specialInstructions:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, cancelled, completed]
+        nextDeliveryDate:
+          type: string
+          format: date-time
+        lastDeliveryDate:
+          type: string
+          format: date-time
+        totalDeliveries:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SubscriptionRequest:
+      type: object
+      required:
+        - products
+        - subscriptionType
+        - frequency
+        - startDate
+      properties:
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+                minimum: 1
+          minItems: 1
+        subscriptionType:
+          type: string
+          enum: [one-time, weekly, monthly, custom]
+        frequency:
+          type: string
+          enum: [daily, twice_week, alternate_days, weekly, fortnightly, monthly]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        deliveryTime:
+          type: string
+          enum: [morning, afternoon, evening, flexible]
+          default: morning
+        deliveryDays:
+          type: array
+          items:
+            type: string
+            enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+        deliveryDay:
+          type: integer
+          minimum: 1
+          maximum: 28
+        specialInstructions:
+          type: string
+
+    ConsumerSubscriptionRequest:
+      type: object
+      required:
+        - products
+        - frequency
+        - startDate
+        - endDate
+      properties:
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+                minimum: 1
+          minItems: 1
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        deliveryTime:
+          type: string
+          enum: [morning, afternoon, evening]
+          default: morning
+        deliveryAddress:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            pincode:
+              type: string
+            landmark:
+              type: string
+        specialInstructions:
+          type: string
+        deliveryDays:
+          type: array
+          items:
+            type: string
+            enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+
+    # Delivery Schema
+    Delivery:
+      type: object
+      properties:
+        _id:
+          type: string
+        order:
+          type: string
+          description: Order ID
+        deliveryBoy:
+          type: string
+          description: Delivery boy user ID
+        distributor:
+          type: string
+          description: Distributor user ID
+        scheduledDate:
+          type: string
+          format: date-time
+        scheduledTime:
+          type: string
+          enum: [morning, evening]
+        actualDeliveryTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, FAILED, CANCELLED]
+        deliveryProof:
+          type: object
+          properties:
+            image:
+              type: string
+            signature:
+              type: string
+            customerSignature:
+              type: string
+            gpsLocation:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+            deliveredAt:
+              type: string
+              format: date-time
+        failureReason:
+          type: string
+        customerFeedback:
+          type: object
+          properties:
+            rating:
+              type: integer
+              minimum: 1
+              maximum: 5
+            comment:
+              type: string
+        route:
+          type: object
+          properties:
+            startLocation:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+            endLocation:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+            distance:
+              type: number
+            estimatedTime:
+              type: number
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Error Response Schema
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Error message
+        error:
+          type: string
+          description: Detailed error information (development only)
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+          description: Validation errors
+
+tags:
+  - name: Authentication
+    description: User authentication and profile management
+  - name: Address Management
+    description: User address management operations
+  - name: Subscription Management
+    description: Subscription creation and management
+  - name: Admin Management
+    description: Administrative operations (Admin only)
+  - name: Consumer
+    description: Consumer-specific operations
+  - name: System
+    description: System health and status endpoints
