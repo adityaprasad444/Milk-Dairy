@@ -251,4 +251,4 @@ NODE_ENV=production
 - [ ] Environment variables are set
 - [ ] Logs are being generated
 - [ ] Performance metrics are normal
-- [ ] Custom domain configured (if applicable)
+- [ ] Custom domain configured (if appli

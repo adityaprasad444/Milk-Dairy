@@ -1,37 +1,13 @@
-# Choreo component configuration
-version: 0.1
+schemaVersion: 1.0
 type: service
-
-# Component metadata
 name: milk-dairy-backend
 description: Milk Dairy Management System Backend API
-icon: https://raw.githubusercontent.com/choreo-samples/nodejs-rest-api/main/icon.png
 
-# Build configuration
 build:
   dockerfile: Dockerfile
 
-# Environment variables
 env:
   - name: NODE_ENV
     value: production
   - name: PORT
     value: "5000"
-  - name: MONGO_URI
-    valueFrom: secret
-    secretName: MONGO_URI
-  - name: JWT_SECRET
-    valueFrom: secret
-    secretName: JWT_SECRET
-  - name: CLIENT_URL
-    value: "*"
-
-# Health check configuration
-healthCheck:
-  httpGet:
-    path: /api/health
-    port: 5000
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
