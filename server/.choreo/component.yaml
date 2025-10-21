@@ -1,4 +1,4 @@
-schemaVersion: 1.0
+schemaVersion: 1.2
 type: service
 name: milk-dairy-backend
 description: Milk Dairy Management System Backend API
