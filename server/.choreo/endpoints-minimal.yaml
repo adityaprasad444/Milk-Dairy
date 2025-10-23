@@ -1,0 +1,6 @@
+schemaVersion: 1.2
+endpoints:
+  - name: default
+    type: REST
+    port: 5000
+    context: /

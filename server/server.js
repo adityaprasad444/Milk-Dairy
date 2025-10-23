@@ -77,7 +77,35 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ message: 'Milk Dairy Management API is running!' });
+  res.json({ 
+    message: 'Milk Dairy Management API is running!',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    endpoints: [
+      '/api/health',
+      '/api/auth/register',
+      '/api/auth/login',
+      '/api-docs'
+    ]
+  });
+});
+
+// Simple test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'Test endpoint working!',
+    status: 'success'
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Milk Dairy Management System API',
+    documentation: '/api-docs',
+    health: '/api/health',
+    test: '/api/test'
+  });
 });
 
 // Serve swagger.yaml file directly
